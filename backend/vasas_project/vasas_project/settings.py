@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "corsheaders",
 
     "vasas_auth",
+    "vasas_userprofile",
 ]
 
 MIDDLEWARE = [
@@ -150,6 +151,7 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
 }
+
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:59143",

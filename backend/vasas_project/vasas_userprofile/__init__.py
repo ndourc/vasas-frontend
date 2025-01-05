@@ -1,0 +1,1 @@
+default_app_config = 'vasas_auth.apps.VasasAuthConfig'
