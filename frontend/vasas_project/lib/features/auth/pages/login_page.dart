@@ -4,6 +4,7 @@ import 'package:vasas_project/core/utils/build_textfield.dart';
 import 'package:vasas_project/features/auth/apis/auth_service.dart';
 import 'package:vasas_project/features/auth/pages/forgot_password_page.dart';
 import 'package:vasas_project/features/auth/pages/sign_up_page.dart';
+import 'package:vasas_project/features/chat/pages/start_chat_page.dart';
 import 'package:vasas_project/features/home/pages/homepage.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -37,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Navigate to the home screen or show success message
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        MaterialPageRoute(builder: (context) => const StartChatPage()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -1,95 +1,128 @@
+import 'package:avatars/avatars.dart';
 import 'package:flutter/material.dart';
 
 class ChatbotPage extends StatefulWidget {
   const ChatbotPage({super.key});
 
   @override
-  _ChatbotPageState createState() => _ChatbotPageState();
+  State<ChatbotPage> createState() => _ChatbotPageState();
 }
 
 class _ChatbotPageState extends State<ChatbotPage> {
-  final TextEditingController _messageController = TextEditingController();
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Savannah - Your Virtual Assistant'),
-      ),
-      body: Column(
+      backgroundColor: const Color.fromARGB(255, 175, 173, 173),
+      body: SafeArea(
+          child: Column(
         children: [
-          Expanded(
-            child: ListView(
-              children: [
-                ChatBubble(
-                    isUser: true,
-                    text:
-                        "Hi Savannah, I’m feeling overwhelmed with my studies. Can you help me create a study plan?"),
-                ChatBubble(
-                    isUser: false,
-                    text:
-                        "Hello! I’m here to help. Let’s break it down together. Could you tell me which subjects or topics you’re working on and how much time you can dedicate each day?"),
-                ChatBubble(
-                    isUser: true,
-                    text:
-                        "I have exams in Math, Biology, and History. I can spend about 4 hours daily on studying."),
-                ChatBubble(
-                    isUser: false,
-                    text:
-                        "Got it! Based on your subjects and available time, here’s a suggested study plan:\n\nMath: 1.5 hours – Focus on problem-solving and past papers.\nBiology: 1 hour – Review notes and diagrams.\nHistory: 1.5 hours – Study timelines and key events."),
-              ],
+          headerChat(),
+          bodyChat(),
+        ],
+      )),
+    );
+  }
+
+  Widget headerChat() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color.fromARGB(255, 175, 173, 173),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
+      child: Row(
+        children: [
+          const Icon(Icons.arrow_back_ios),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(50),
             ),
+            child: const Icon(Icons.person),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
+          const SizedBox(width: 5),
+          const Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: 'Type a message...',
+                Row(
+                  children: [
+                    Text(
+                      "Savannah",
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black),
                     ),
-                  ),
+                    Icon(Icons.check_circle, color: Colors.green, size: 15),
+                  ],
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: () {
-                    // Add send message logic here
-                  },
-                ),
-              ],
-            ),
-          ),
+                Text("Vasas 1.1")
+              ])
         ],
       ),
     );
   }
-}
 
-class ChatBubble extends StatelessWidget {
-  final bool isUser;
-  final String text;
-
-  ChatBubble({super.key, required this.isUser, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+  Widget bodyChat() {
+    return Expanded(
       child: Container(
-        margin: const EdgeInsets.all(8.0),
-        padding: const EdgeInsets.all(12.0),
-        decoration: BoxDecoration(
-          color: isUser ? Colors.blue : Colors.grey[300],
-          borderRadius: BorderRadius.circular(12.0),
+        padding: const EdgeInsets.only(left: 20, right: 20, top: 20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(40), topRight: Radius.circular(40)),
         ),
-        child: Text(
-          text,
-          style: TextStyle(color: isUser ? Colors.white : Colors.black),
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          children: [
+            itemChat(
+              chat: 1,
+              message: "Hello",
+              avatar: "Henry Ndou",
+              time: "12:00",
+            )
+          ],
         ),
       ),
     );
   }
+}
+
+Widget itemChat({
+  required int chat,
+  required String message,
+  required String avatar,
+  required String time,
+}) {
+  return Row(
+    mainAxisAlignment:
+        chat == 1 ? MainAxisAlignment.end : MainAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.end,
+    children: [
+      Avatar(useCache: true, name: avatar, shape: AvatarShape.circle(25)),
+      Flexible(
+          child: Container(
+        margin: const EdgeInsets.only(left: 15, right: 15, top: 20),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+            color: Colors.grey,
+            borderRadius: chat == 0
+                ? const BorderRadius.only(
+                    topLeft: Radius.circular(30),
+                    topRight: Radius.circular(30),
+                    bottomLeft: Radius.circular(30),
+                  )
+                : const BorderRadius.only(
+                    topLeft: Radius.circular(30),
+                    topRight: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  )),
+        child: Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontSize: 16),
+        ),
+      ))
+    ],
+  );
 }

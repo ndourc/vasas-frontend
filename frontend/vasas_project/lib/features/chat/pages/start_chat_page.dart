@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:vasas_project/features/chat/pages/chat_screen.dart';
 
 class StartChatPage extends StatefulWidget {
   const StartChatPage({super.key});
@@ -56,8 +57,11 @@ class _StartChatPageState extends State<StartChatPage> {
                       const SizedBox(height: 24),
                       ElevatedButton(
                         onPressed: () {
-                          Navigator.pushNamed(
-                              context, '/chat'); // Navigate to Chatbot Page
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const ChatbotPage()),
+                          ); // Navigate to Chatbot Page
                         },
                         child: const Text(
                           'Start Chat',
