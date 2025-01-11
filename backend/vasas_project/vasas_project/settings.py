@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+ 
     "rest_framework",
     "djoser",
     "rest_framework.authtoken",
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
 
     "vasas_auth",
     "vasas_userprofile",
+    "vasas_chatbot",
 ]
 
 MIDDLEWARE = [
@@ -55,6 +57,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+
+    "corsheaders.middleware.CorsMiddleware",
 ]
 
 ROOT_URLCONF = "vasas_project.urls"
@@ -136,16 +140,19 @@ DJOSER = {
     'LOGIN_FIELD': 'email',
     'USER_CREATE_PASSWORD_RETYPE': True,
     'SERIALIZERS': {
-        'user_create': 'djoser.serializers.UserCreateSerializer',
-        'user': 'djoser.serializers.UserSerializer',
+        # 'user_create': 'djoser.serializers.UserCreateSerializer',
+        # 'user': 'djoser.serializers.UserSerializer',
     },
-    'HIDE_USERS': True,
+    #'HIDE_USERS': True,
 }
 
+SIMPLE_JWT = {
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -153,6 +160,7 @@ REST_FRAMEWORK = {
 }
 
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:59143",
-]
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:59143",
+# ]
+CORS_ALLOW_ALL_ORIGINS = True
