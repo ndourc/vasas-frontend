@@ -27,7 +27,7 @@ class AuthService {
 
   // Login function
   static Future<void> loginUser(String email, String password) async {
-    final url = Uri.parse('$baseUrl/auth/token/login/');
+    final url = Uri.parse('$baseUrl/auth/jwt/create/');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -39,12 +39,14 @@ class AuthService {
 
     if (response.statusCode == 200) {
       final responseData = json.decode(response.body);
-      String authToken = responseData['auth_token'];
+      String accessToken = responseData['access'];
+      String refreshToken = responseData['refresh'];
 
-      // Save the token in shared preferences
+      // Save the tokens in shared preferences
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('authToken', authToken);
-      print('Login successful, token stored: $authToken');
+      await prefs.setString('accessToken', accessToken);
+      await prefs.setString('refreshToken', refreshToken);
+      print('Login successful, tokens stored: $accessToken');
     } else {
       print('Login failed: ${response.body}');
     }
@@ -53,28 +55,20 @@ class AuthService {
   // Check if user is logged in
   static Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.containsKey('authToken');
+    return prefs.containsKey('accessToken');
   }
 
   // Logout function
   static Future<void> logoutUser() async {
-    final url = Uri.parse('$baseUrl/auth/token/logout/');
     final prefs = await SharedPreferences.getInstance();
-    final authToken = prefs.getString('authToken');
+    await prefs.remove('accessToken');
+    await prefs.remove('refreshToken');
+    print('Logout successful');
+  }
 
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Token $authToken',
-      },
-    );
-
-    if (response.statusCode == 204) {
-      await prefs.remove('authToken');
-      print('Logout successful');
-    } else {
-      print('Logout failed: ${response.body}');
-    }
+  // Get access token
+  static Future<String?> getAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('accessToken');
   }
 }

@@ -1,5 +1,9 @@
-import 'package:avatars/avatars.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:vasas_project/features/auth/apis/auth_service.dart';
 
 class ChatbotPage extends StatefulWidget {
   const ChatbotPage({super.key});
@@ -9,17 +13,35 @@ class ChatbotPage extends StatefulWidget {
 }
 
 class _ChatbotPageState extends State<ChatbotPage> {
+  final List<types.Message> _messages = [];
+  final _user = const types.User(id: 'user-id');
+  final _bot = const types.User(id: 'bot-id');
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 175, 173, 173),
+      backgroundColor: Colors.white,
       body: SafeArea(
-          child: Column(
-        children: [
-          headerChat(),
-          bodyChat(),
-        ],
-      )),
+        child: Column(
+          children: [
+            headerChat(),
+            Expanded(
+              child: Chat(
+                messages: _messages,
+                onSendPressed: _handleSendPressed,
+                user: _user,
+                theme: const DefaultChatTheme(
+                  inputBackgroundColor: Colors.white,
+                  inputTextColor: Colors.black,
+                  primaryColor: Colors.green,
+                  secondaryColor: Colors.white,
+                  backgroundColor: Color.fromARGB(255, 175, 173, 173),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -42,87 +64,74 @@ class _ChatbotPageState extends State<ChatbotPage> {
           ),
           const SizedBox(width: 5),
           const Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      "Savannah",
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black),
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    "Savannah",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
                     ),
-                    Icon(Icons.check_circle, color: Colors.green, size: 15),
-                  ],
-                ),
-                Text("Vasas 1.1")
-              ])
+                  ),
+                  Icon(Icons.check_circle, color: Colors.green, size: 15),
+                ],
+              ),
+              Text("Vasas 1.1"),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget bodyChat() {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(40), topRight: Radius.circular(40)),
-        ),
-        child: ListView(
-          physics: const BouncingScrollPhysics(),
-          children: [
-            itemChat(
-              chat: 1,
-              message: "Hello",
-              avatar: "Henry Ndou",
-              time: "12:00",
-            )
-          ],
-        ),
-      ),
+  void _handleSendPressed(types.PartialText message) async {
+    final textMessage = types.TextMessage(
+      author: _user,
+      createdAt: DateTime.now().millisecondsSinceEpoch,
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      text: message.text,
     );
-  }
-}
 
-Widget itemChat({
-  required int chat,
-  required String message,
-  required String avatar,
-  required String time,
-}) {
-  return Row(
-    mainAxisAlignment:
-        chat == 1 ? MainAxisAlignment.end : MainAxisAlignment.start,
-    crossAxisAlignment: CrossAxisAlignment.end,
-    children: [
-      Avatar(useCache: true, name: avatar, shape: AvatarShape.circle(25)),
-      Flexible(
-          child: Container(
-        margin: const EdgeInsets.only(left: 15, right: 15, top: 20),
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-            color: Colors.grey,
-            borderRadius: chat == 0
-                ? const BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                    bottomLeft: Radius.circular(30),
-                  )
-                : const BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                    bottomRight: Radius.circular(30),
-                  )),
-        child: Text(
-          message,
-          style: const TextStyle(color: Colors.white, fontSize: 16),
-        ),
-      ))
-    ],
-  );
+    setState(() {
+      _messages.insert(0, textMessage);
+    });
+
+    final botResponse = await _sendMessageToBot(message.text);
+
+    final botMessage = types.TextMessage(
+      author: _bot,
+      createdAt: DateTime.now().millisecondsSinceEpoch,
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      text: botResponse,
+    );
+
+    setState(() {
+      _messages.insert(0, botMessage);
+    });
+  }
+
+  Future<String> _sendMessageToBot(String message) async {
+    final accessToken = await AuthService.getAccessToken();
+    final url = Uri.parse('http://127.0.0.1:8000/api/chat/');
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      },
+      body: jsonEncode({'user_message': message}),
+    );
+
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      return responseData['bot_response'];
+    } else {
+      print('Failed to get response from bot: ${response.body}');
+      return 'Error: Unable to get response from bot';
+    }
+  }
 }
