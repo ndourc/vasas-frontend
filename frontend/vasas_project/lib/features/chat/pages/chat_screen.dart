@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:vasas_project/features/auth/apis/auth_service.dart';
+import 'package:vasas_project/features/chat/apis/chat_services.dart';
+import 'package:vasas_project/features/chat/apis/event_service.dart';
+import '../models/event_model.dart';
 
 class ChatbotPage extends StatefulWidget {
   const ChatbotPage({super.key});
@@ -89,49 +89,120 @@ class _ChatbotPageState extends State<ChatbotPage> {
   }
 
   void _handleSendPressed(types.PartialText message) async {
+    final preprocessedMessage = preprocessUserInput(message.text);
+
     final textMessage = types.TextMessage(
       author: _user,
       createdAt: DateTime.now().millisecondsSinceEpoch,
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      text: message.text,
+      text: preprocessedMessage,
     );
 
     setState(() {
       _messages.insert(0, textMessage);
     });
 
-    final botResponse = await _sendMessageToBot(message.text);
+    final botResponse =
+        await ChatbotService.sendMessageToBot(preprocessedMessage);
+    final postprocessedResponse = postprocessBotResponse(botResponse);
 
     final botMessage = types.TextMessage(
       author: _bot,
       createdAt: DateTime.now().millisecondsSinceEpoch,
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      text: botResponse,
+      text: postprocessedResponse,
     );
 
     setState(() {
       _messages.insert(0, botMessage);
     });
+
+    // Check for event-related keywords
+    if (postprocessedResponse
+        .contains("Should I set a reminder for this event?")) {
+      _scheduleEventDialog(preprocessedMessage);
+    }
   }
 
-  Future<String> _sendMessageToBot(String message) async {
-    final accessToken = await AuthService.getAccessToken();
-    final url = Uri.parse('http://127.0.0.1:8000/api/chat/');
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
+  String preprocessUserInput(String input) {
+    // Example: Remove or replace certain keywords
+    input = input.replaceAll('Meta', 'Your Company');
+    return input;
+  }
+
+  String postprocessBotResponse(String response) {
+    // Example: Remove or replace certain keywords
+    response = response.replaceAll('Meta', 'Your Company');
+    return response;
+  }
+
+  void _scheduleEventDialog(String userMessage) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Schedule Event"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text("Please provide the following details:"),
+              TextField(
+                decoration: InputDecoration(labelText: "Date (YYYY-MM-DD)"),
+                onChanged: (value) {
+                  // Store the date value
+                },
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: "Time (HH:MM)"),
+                onChanged: (value) {
+                  // Store the time value
+                },
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: "Description"),
+                onChanged: (value) {
+                  // Store the description value
+                },
+              ),
+              TextField(
+                decoration: InputDecoration(labelText: "Venue"),
+                onChanged: (value) {
+                  // Store the venue value
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              child: Text("Cancel"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text("Submit"),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _scheduleEvent(userMessage);
+              },
+            ),
+          ],
+        );
       },
-      body: jsonEncode({'user_message': message}),
+    );
+  }
+
+  void _scheduleEvent(String userMessage) {
+    // Extract event details from userMessage (e.g., date, time, title)
+    // For simplicity, we'll use hardcoded values here
+    final event = Event(
+      title: "Exam",
+      date: DateTime(2023, 1, 17),
+      time: TimeOfDay(hour: 9, minute: 0),
+      description: userMessage,
+      venue: "Your Venue",
     );
 
-    if (response.statusCode == 200) {
-      final responseData = json.decode(response.body);
-      return responseData['bot_response'];
-    } else {
-      print('Failed to get response from bot: ${response.body}');
-      return 'Error: Unable to get response from bot';
-    }
+    EventService.scheduleEvent(event);
   }
 }
