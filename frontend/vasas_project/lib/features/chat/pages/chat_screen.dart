@@ -3,7 +3,11 @@ import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:vasas_project/features/chat/apis/chat_services.dart';
 import 'package:vasas_project/features/chat/apis/event_service.dart';
-import '../models/event_model.dart';
+import 'package:vasas_project/features/chat/models/event_model.dart';
+import 'package:flutter_sound_record/flutter_sound_record.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class ChatbotPage extends StatefulWidget {
   const ChatbotPage({super.key});
@@ -16,6 +20,26 @@ class _ChatbotPageState extends State<ChatbotPage> {
   final List<types.Message> _messages = [];
   final _user = const types.User(id: 'user-id');
   final _bot = const types.User(id: 'bot-id');
+  final FlutterSoundRecord _recorder = FlutterSoundRecord();
+  final FlutterTts _flutterTts = FlutterTts();
+  bool _isRecording = false;
+  String _audioPath = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeRecorder();
+  }
+
+  Future<void> _initializeRecorder() async {
+    await _recorder.start();
+  }
+
+  @override
+  void dispose() {
+    _recorder.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +63,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                 ),
               ),
             ),
+            _buildRecordingButton(),
           ],
         ),
       ),
@@ -88,6 +113,39 @@ class _ChatbotPageState extends State<ChatbotPage> {
     );
   }
 
+  Widget _buildRecordingButton() {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: FloatingActionButton(
+        onPressed: _isRecording ? _stopRecording : _startRecording,
+        child: Icon(_isRecording ? Icons.stop : Icons.mic),
+      ),
+    );
+  }
+
+  Future<void> _startRecording() async {
+    Directory tempDir = await getTemporaryDirectory();
+    _audioPath = '${tempDir.path}/audio.wav';
+    await _recorder.start(path: _audioPath, encoder: AudioEncoder.AAC);
+    setState(() {
+      _isRecording = true;
+    });
+  }
+
+  Future<void> _stopRecording() async {
+    await _recorder.stop();
+    setState(() {
+      _isRecording = false;
+    });
+    _sendAudioToBot();
+  }
+
+  Future<void> _sendAudioToBot() async {
+    final recognizedText =
+        await ChatbotService.sendAudioToBot(File(_audioPath));
+    _handleSendPressed(types.PartialText(text: recognizedText));
+  }
+
   void _handleSendPressed(types.PartialText message) async {
     final preprocessedMessage = preprocessUserInput(message.text);
 
@@ -117,11 +175,18 @@ class _ChatbotPageState extends State<ChatbotPage> {
       _messages.insert(0, botMessage);
     });
 
+    // Play the bot's response
+    _playBotResponse(postprocessedResponse);
+
     // Check for event-related keywords
     if (postprocessedResponse
         .contains("Should I set a reminder for this event?")) {
       _scheduleEventDialog(preprocessedMessage);
     }
+  }
+
+  Future<void> _playBotResponse(String response) async {
+    await _flutterTts.speak(response);
   }
 
   String preprocessUserInput(String input) {
