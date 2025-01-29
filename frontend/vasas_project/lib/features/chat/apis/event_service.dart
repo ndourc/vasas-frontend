@@ -4,7 +4,7 @@ import 'package:vasas_project/features/auth/apis/auth_service.dart';
 import '../models/event_model.dart';
 
 class EventService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'http://10.0.2.2:8000';
 
   static Future<void> scheduleEvent(Event event) async {
     final accessToken = await AuthService.getAccessToken();

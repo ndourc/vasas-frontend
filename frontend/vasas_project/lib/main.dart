@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:vasas_project/features/auth/pages/sign_up_page.dart';
-import 'package:vasas_project/features/auth/pages/forgot_password_page.dart';
-import 'package:vasas_project/features/chat/pages/chat_screen.dart';
-import 'package:vasas_project/features/planner_module/pages/plans.dart';
-import 'package:vasas_project/features/chat/pages/start_chat_page.dart';
 
 void main() {
   runApp(const MyApp());

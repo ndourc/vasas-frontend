@@ -1,1 +1,1 @@
-String vasasBaseUrl = "127.0.0.1:8000";
+String vasasBaseUrl = "10.0.2.2:8000";

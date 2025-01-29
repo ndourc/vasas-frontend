@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+// ignore: depend_on_referenced_packages
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:vasas_project/features/chat/apis/chat_services.dart';
 import 'package:vasas_project/features/chat/apis/event_service.dart';
 import 'package:vasas_project/features/chat/models/event_model.dart';
-import 'package:flutter_sound_record/flutter_sound_record.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
+// ignore: depend_on_referenced_packages
+import 'package:scroll_to_index/scroll_to_index.dart';
 
 class ChatbotPage extends StatefulWidget {
   const ChatbotPage({super.key});
@@ -17,27 +17,46 @@ class ChatbotPage extends StatefulWidget {
 }
 
 class _ChatbotPageState extends State<ChatbotPage> {
+  final AutoScrollController _scrollController = AutoScrollController();
+
   final List<types.Message> _messages = [];
   final _user = const types.User(id: 'user-id');
   final _bot = const types.User(id: 'bot-id');
-  final FlutterSoundRecord _recorder = FlutterSoundRecord();
-  final FlutterTts _flutterTts = FlutterTts();
-  bool _isRecording = false;
-  String _audioPath = '';
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _isListening = false;
+  String _recognizedText = '';
+
+  // Add controllers for event details
+  final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _timeController = TextEditingController();
+  final TextEditingController _descController = TextEditingController();
+  final TextEditingController _venueController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _initializeRecorder();
+    _initializeSpeech();
   }
 
-  Future<void> _initializeRecorder() async {
-    await _recorder.start();
+  Future<void> _initializeSpeech() async {
+    try {
+      await _speech.initialize(
+        onStatus: (status) => debugPrint('Speech status: $status'),
+        onError: (error) => debugPrint('Speech error: $error'),
+      );
+    } catch (e) {
+      debugPrint('Speech initialization error: $e');
+    }
   }
 
   @override
   void dispose() {
-    _recorder.dispose();
+    _speech.stop();
+    _scrollController.dispose();
+    _dateController.dispose();
+    _timeController.dispose();
+    _descController.dispose();
+    _venueController.dispose();
     super.dispose();
   }
 
@@ -48,29 +67,24 @@ class _ChatbotPageState extends State<ChatbotPage> {
       body: SafeArea(
         child: Column(
           children: [
-            headerChat(),
+            _buildHeader(),
             Expanded(
               child: Chat(
                 messages: _messages,
                 onSendPressed: _handleSendPressed,
                 user: _user,
-                theme: const DefaultChatTheme(
-                  inputBackgroundColor: Colors.white,
-                  inputTextColor: Colors.black,
-                  primaryColor: Colors.green,
-                  secondaryColor: Colors.white,
-                  backgroundColor: Color.fromARGB(255, 175, 173, 173),
-                ),
+                theme: _buildChatTheme(),
+                scrollController: _scrollController,
               ),
             ),
-            _buildRecordingButton(),
+            _buildListeningUI(),
           ],
         ),
       ),
     );
   }
 
-  Widget headerChat() {
+  Widget _buildHeader() {
     return Container(
       decoration: const BoxDecoration(
         color: Color.fromARGB(255, 175, 173, 173),
@@ -78,18 +92,13 @@ class _ChatbotPageState extends State<ChatbotPage> {
       padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
       child: Row(
         children: [
-          const Icon(Icons.arrow_back_ios),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(50),
-            ),
-            child: const Icon(Icons.person),
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios),
+            onPressed: () => Navigator.pop(context),
           ),
-          const SizedBox(width: 5),
+          const CircleAvatar(child: Icon(Icons.person)),
+          const SizedBox(width: 12),
           const Column(
-            mainAxisAlignment: MainAxisAlignment.start,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -99,13 +108,13 @@ class _ChatbotPageState extends State<ChatbotPage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
                     ),
                   ),
-                  Icon(Icons.check_circle, color: Colors.green, size: 15),
+                  SizedBox(width: 4),
+                  Icon(Icons.check_circle, color: Colors.green, size: 16),
                 ],
               ),
-              Text("Vasas 1.1"),
+              Text("Vasas 1.1", style: TextStyle(fontSize: 12)),
             ],
           ),
         ],
@@ -113,161 +122,226 @@ class _ChatbotPageState extends State<ChatbotPage> {
     );
   }
 
-  Widget _buildRecordingButton() {
+  DefaultChatTheme _buildChatTheme() {
+    return const DefaultChatTheme(
+      inputBackgroundColor: Colors.white,
+      inputTextColor: Colors.black,
+      primaryColor: Colors.green,
+      secondaryColor: Colors.white,
+      backgroundColor: Color.fromARGB(255, 175, 173, 173),
+      inputBorderRadius: BorderRadius.all(Radius.circular(25)),
+      sendButtonIcon: Icon(Icons.send, color: Colors.green),
+    );
+  }
+
+  Widget _buildListeningUI() {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: FloatingActionButton(
-        onPressed: _isRecording ? _stopRecording : _startRecording,
-        child: Icon(_isRecording ? Icons.stop : Icons.mic),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(
+                _isListening ? 'Listening...' : 'Tap mic to speak',
+                style: TextStyle(
+                  color: _isListening ? Colors.green : Colors.grey,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          ),
+          FloatingActionButton(
+            onPressed: _isListening ? _stopListening : _startListening,
+            backgroundColor: _isListening ? Colors.red : Colors.green,
+            child: Icon(_isListening ? Icons.stop : Icons.mic),
+          ),
+        ],
       ),
     );
   }
 
-  Future<void> _startRecording() async {
-    Directory tempDir = await getTemporaryDirectory();
-    _audioPath = '${tempDir.path}/audio.wav';
-    await _recorder.start(path: _audioPath, encoder: AudioEncoder.AAC);
-    setState(() {
-      _isRecording = true;
-    });
-  }
-
-  Future<void> _stopRecording() async {
-    await _recorder.stop();
-    setState(() {
-      _isRecording = false;
-    });
-    _sendAudioToBot();
-  }
-
-  Future<void> _sendAudioToBot() async {
-    final recognizedText =
-        await ChatbotService.sendAudioToBot(File(_audioPath));
-    _handleSendPressed(types.PartialText(text: recognizedText));
-  }
-
-  void _handleSendPressed(types.PartialText message) async {
-    final preprocessedMessage = preprocessUserInput(message.text);
-
-    final textMessage = types.TextMessage(
-      author: _user,
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      text: preprocessedMessage,
-    );
-
-    setState(() {
-      _messages.insert(0, textMessage);
-    });
-
-    final botResponse =
-        await ChatbotService.sendMessageToBot(preprocessedMessage);
-    final postprocessedResponse = postprocessBotResponse(botResponse);
-
-    final botMessage = types.TextMessage(
-      author: _bot,
-      createdAt: DateTime.now().millisecondsSinceEpoch,
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      text: postprocessedResponse,
-    );
-
-    setState(() {
-      _messages.insert(0, botMessage);
-    });
-
-    // Play the bot's response
-    _playBotResponse(postprocessedResponse);
-
-    // Check for event-related keywords
-    if (postprocessedResponse
-        .contains("Should I set a reminder for this event?")) {
-      _scheduleEventDialog(preprocessedMessage);
+  Future<void> _startListening() async {
+    if (!_isListening) {
+      bool available = await _speech.initialize();
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult: (result) => setState(() {
+            _recognizedText = result.recognizedWords;
+            if (result.finalResult) {
+              _sendRecognizedTextToBot();
+            }
+          }),
+        );
+      }
     }
   }
 
-  Future<void> _playBotResponse(String response) async {
-    await _flutterTts.speak(response);
+  Future<void> _stopListening() async {
+    if (_isListening) {
+      await _speech.stop();
+      setState(() => _isListening = false);
+      if (_recognizedText.isNotEmpty) {
+        _sendRecognizedTextToBot();
+      }
+    }
   }
 
-  String preprocessUserInput(String input) {
-    // Example: Remove or replace certain keywords
-    input = input.replaceAll('Meta', 'Your Company');
-    return input;
+  void _sendRecognizedTextToBot() {
+    if (_recognizedText.trim().isNotEmpty) {
+      _handleSendPressed(types.PartialText(text: _recognizedText));
+      setState(() => _recognizedText = '');
+    }
   }
 
-  String postprocessBotResponse(String response) {
-    // Example: Remove or replace certain keywords
-    response = response.replaceAll('Meta', 'Your Company');
-    return response;
+  void _handleSendPressed(types.PartialText message) async {
+    final processedText = _preprocessInput(message.text);
+
+    final userMessage = types.TextMessage(
+      author: _user,
+      createdAt: DateTime.now().millisecondsSinceEpoch,
+      id: UniqueKey().toString(),
+      text: processedText,
+    );
+
+    setState(() {
+      _messages.insert(0, userMessage);
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    });
+
+    try {
+      final response = await ChatbotService.sendMessageToBot(processedText);
+      final botMessage = types.TextMessage(
+        author: _bot,
+        createdAt: DateTime.now().millisecondsSinceEpoch,
+        id: UniqueKey().toString(),
+        text: _postprocessResponse(response),
+      );
+
+      setState(() {
+        _messages.insert(0, botMessage);
+        if (response.contains("Should I set a reminder")) {
+          _showEventDialog(processedText);
+        }
+      });
+    } catch (e) {
+      _showError('Failed to get response from bot');
+    }
   }
 
-  void _scheduleEventDialog(String userMessage) {
+  String _preprocessInput(String input) {
+    return input.replaceAll('Meta', 'Your Company').trim();
+  }
+
+  String _postprocessResponse(String response) {
+    return response.replaceAll('Meta', 'Your Company').trim();
+  }
+
+  void _showEventDialog(String contextMessage) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text("Schedule Event"),
-          content: Column(
+      builder: (context) => AlertDialog(
+        title: const Text("Schedule Event"),
+        content: SingleChildScrollView(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Please provide the following details:"),
               TextField(
-                decoration: InputDecoration(labelText: "Date (YYYY-MM-DD)"),
-                onChanged: (value) {
-                  // Store the date value
-                },
+                controller: _dateController,
+                decoration: const InputDecoration(
+                  labelText: "Date (YYYY-MM-DD)",
+                  hintText: "2024-01-01",
+                ),
               ),
               TextField(
-                decoration: InputDecoration(labelText: "Time (HH:MM)"),
-                onChanged: (value) {
-                  // Store the time value
-                },
+                controller: _timeController,
+                decoration: const InputDecoration(
+                  labelText: "Time (HH:MM)",
+                  hintText: "14:30",
+                ),
               ),
               TextField(
-                decoration: InputDecoration(labelText: "Description"),
-                onChanged: (value) {
-                  // Store the description value
-                },
+                controller: _descController,
+                decoration: const InputDecoration(labelText: "Description"),
               ),
               TextField(
-                decoration: InputDecoration(labelText: "Venue"),
-                onChanged: (value) {
-                  // Store the venue value
-                },
+                controller: _venueController,
+                decoration: const InputDecoration(labelText: "Venue"),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              child: Text("Cancel"),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            TextButton(
-              child: Text("Submit"),
-              onPressed: () {
-                Navigator.of(context).pop();
-                _scheduleEvent(userMessage);
-              },
-            ),
-          ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => _handleEventSubmission(contextMessage),
+            child: const Text("Save"),
+          ),
+        ],
+      ),
     );
   }
 
-  void _scheduleEvent(String userMessage) {
-    // Extract event details from userMessage (e.g., date, time, title)
-    // For simplicity, we'll use hardcoded values here
+  void _handleEventSubmission(String contextMessage) {
     final event = Event(
-      title: "Exam",
-      date: DateTime(2023, 1, 17),
-      time: TimeOfDay(hour: 9, minute: 0),
-      description: userMessage,
-      venue: "Your Venue",
+      title: "Event from Chat",
+      date: _parseDate(_dateController.text) ?? DateTime.now(),
+      time: _parseTime(_timeController.text) ?? TimeOfDay.now(),
+      description: _descController.text.isNotEmpty
+          ? _descController.text
+          : contextMessage,
+      venue: _venueController.text,
     );
 
     EventService.scheduleEvent(event);
+    Navigator.pop(context);
+    _showSuccess('Event scheduled successfully!');
+  }
+
+  DateTime? _parseDate(String input) {
+    try {
+      return DateTime.parse(input);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  TimeOfDay? _parseTime(String input) {
+    try {
+      final parts = input.split(':');
+      return TimeOfDay(
+        hour: int.parse(parts[0]),
+        minute: int.parse(parts[1]),
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _showSuccess(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+      ),
+    );
   }
 }

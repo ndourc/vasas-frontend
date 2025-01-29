@@ -21,7 +21,7 @@ class SpeechRecognitionService {
     });
 
     // Wait for the speech recognition to complete
-    await Future.delayed(Duration(seconds: 5));
+    await Future.delayed(const Duration(seconds: 5));
     return recognizedText.isNotEmpty ? recognizedText : null;
   }
 

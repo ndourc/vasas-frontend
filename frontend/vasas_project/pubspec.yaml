@@ -35,10 +35,7 @@ dependencies:
   avatars:
   flutter_chat_ui:
   speech_to_text:
-  flutter_tts:
-  flutter_sound:
   file_picker:
-  flutter_sound_record:
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

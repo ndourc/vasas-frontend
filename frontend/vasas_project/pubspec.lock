@@ -9,14 +9,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.11.0"
-  audio_session:
-    dependency: transitive
-    description:
-      name: audio_session
-      sha256: b2a26ba8b7efa1790d6460e82971fde3e398cfbe2295df9dea22f3499d2c12a7
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.23"
   avatars:
     dependency: "direct main"
     description:
@@ -105,14 +97,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.7"
-  etau:
-    dependency: transitive
-    description:
-      name: etau
-      sha256: "4b43a615ecceb1de7c5a35f0a159920b4fdb8ce5a33d71d3828a31efedc67572"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.14-alpha.4"
   fake_async:
     dependency: transitive
     description:
@@ -222,67 +206,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.24"
-  flutter_sound:
-    dependency: "direct main"
-    description:
-      name: flutter_sound
-      sha256: "08e375d699d85e1a823e250d4c01596eadd92ddf8918b6825e4f23e4dd97cddb"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.19.1"
-  flutter_sound_platform_interface:
-    dependency: transitive
-    description:
-      name: flutter_sound_platform_interface
-      sha256: "07d11ca22b1c2e3ffc7c26f0bb6d869c67cef802ff9832e91c9c5e95a3355f6d"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.19.1"
-  flutter_sound_record:
-    dependency: "direct main"
-    description:
-      name: flutter_sound_record
-      sha256: "21bd020a528f1de5b23b3f1fb48ef9dae3b880eccc5aa969ed190262aac026bf"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.3.2"
-  flutter_sound_record_platform_interface:
-    dependency: transitive
-    description:
-      name: flutter_sound_record_platform_interface
-      sha256: c1efe56e241a16db5a5adb7effce3100ca1ea97e45e8b045cea2fcd603a12892
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.1"
-  flutter_sound_record_web:
-    dependency: transitive
-    description:
-      name: flutter_sound_record_web
-      sha256: "7b85aab6774765b2cf7558b1a364711ba135142c0ee5f1695b25e9ff8066f298"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.2"
-  flutter_sound_web:
-    dependency: transitive
-    description:
-      name: flutter_sound_web
-      sha256: "6f7a954947c18a5b2c2294ecea639c38c266430f6e30b19473191eebc7ab66bd"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.19.1"
   flutter_test:
     dependency: "direct dev"
     description: flutter
     source: sdk
     version: "0.0.0"
-  flutter_tts:
-    dependency: "direct main"
-    description:
-      name: flutter_tts
-      sha256: ece61b9eca4311f72b674ddff8ab9b1aba1b13dcf4a5ded20f612c5cc871779c
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.2.1"
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -316,18 +244,10 @@ packages:
     dependency: transitive
     description:
       name: intl
-      sha256: "00f33b908655e606b86d2ade4710a231b802eec6f11e87e4ea3783fd72077a50"
+      sha256: "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5"
       url: "https://pub.dev"
     source: hosted
-    version: "0.20.1"
-  js:
-    dependency: transitive
-    description:
-      name: js
-      sha256: c1b2e9b5ea78c45e1a0788d29606ba27dc5f71f019f32ca5140f61ef071838cf
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.7.1"
+    version: "0.20.2"
   json_annotation:
     dependency: transitive
     description:
@@ -376,14 +296,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
-  logger:
-    dependency: transitive
-    description:
-      name: logger
-      sha256: be4b23575aac7ebf01f225a241eb7f6b5641eeaf43c6a8613510fc2f8cf187d1
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.5.0"
   matcher:
     dependency: transitive
     description:
@@ -408,14 +320,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.15.0"
-  nested:
-    dependency: transitive
-    description:
-      name: nested
-      sha256: "03bac4c528c64c95c722ec99280375a6f2fc708eec17c7b3f07253b626cd2a20"
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.0.0"
   path:
     dependency: transitive
     description:
@@ -504,22 +408,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
-  provider:
-    dependency: transitive
-    description:
-      name: provider
-      sha256: c8a055ee5ce3fd98d6fc872478b03823ffdb448699c6ebdbbc71d59b596fd48c
-      url: "https://pub.dev"
-    source: hosted
-    version: "6.1.2"
-  recase:
-    dependency: transitive
-    description:
-      name: recase
-      sha256: e4eb4ec2dcdee52dcf99cb4ceabaffc631d7424ee55e56f280bc039737f89213
-      url: "https://pub.dev"
-    source: hosted
-    version: "4.1.0"
   rxdart:
     dependency: transitive
     description:
@@ -540,18 +428,18 @@ packages:
     dependency: "direct main"
     description:
       name: shared_preferences
-      sha256: a752ce92ea7540fc35a0d19722816e04d0e72828a4200e83a98cf1a1eb524c9a
+      sha256: c59819dacc6669a1165d54d2735a9543f136f9b3cec94ca65cea6ab8dffc422e
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.5"
+    version: "2.4.0"
   shared_preferences_android:
     dependency: transitive
     description:
       name: shared_preferences_android
-      sha256: "138b7bbbc7f59c56236e426c37afb8f78cbc57b094ac64c440e0bb90e380a4f5"
+      sha256: "650584dcc0a39856f369782874e562efd002a9c94aec032412c9eb81419cce1f"
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.2"
+    version: "2.4.4"
   shared_preferences_foundation:
     dependency: transitive
     description:
@@ -701,14 +589,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.3.0+3"
-  tau_web:
-    dependency: transitive
-    description:
-      name: tau_web
-      sha256: c612cd3dcd9b7aa3472c0272bf3531fc232cd80e53ed7d7388b77dd541720cd6
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.0.14-alpha.4"
   term_glyph:
     dependency: transitive
     description:
@@ -841,10 +721,10 @@ packages:
     dependency: transitive
     description:
       name: win32
-      sha256: "154360849a56b7b67331c21f09a386562d88903f90a1099c5987afc1912e1f29"
+      sha256: daf97c9d80197ed7b619040e86c8ab9a9dad285e7671ee7390f9180cc828a51e
       url: "https://pub.dev"
     source: hosted
-    version: "5.10.0"
+    version: "5.10.1"
   xdg_directories:
     dependency: transitive
     description:
@@ -854,5 +734,5 @@ packages:
     source: hosted
     version: "1.1.0"
 sdks:
-  dart: ">=3.5.3 <4.0.0"
+  dart: ">=3.5.0 <4.0.0"
   flutter: ">=3.24.0"

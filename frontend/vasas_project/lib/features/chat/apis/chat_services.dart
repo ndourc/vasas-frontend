@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:vasas_project/features/auth/apis/auth_service.dart';
 
 class ChatbotService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'http://10.0.2.2:8000';
 
   // Send message to chatbot
   static Future<String> sendMessageToBot(String message) async {

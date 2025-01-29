@@ -1,0 +1,58 @@
+// // Apply the 'base' plugin to the root project
+// apply plugin: 'base'
+
+// allprojects {
+//     ext.kotlin_version = '1.9.22'
+//     repositories {
+//         google()
+//         mavenCentral()
+//     }
+// }
+
+// // Set the build directory for the root project
+// rootProject.buildDir = "../build"
+
+// // Configure subprojects
+// subprojects {
+//     // Set the build directory for each subproject
+//     project.buildDir = "${rootProject.buildDir}/${project.name}"
+//     // Ensure each subproject is evaluated after the ':app' project
+//     project.evaluationDependsOn(":app")
+//     // Apply the 'base' plugin to each subproject to provide the 'clean' task
+//     apply plugin: 'base'
+// }
+
+// // Configure the root project's 'clean' task
+// tasks.register('clean', Delete) {
+//     delete rootProject.buildDir
+//     // Iterate over each subproject
+//     subprojects.each { subproject ->
+//         // Ensure the subproject has a 'clean' task
+//         subproject.tasks.matching { it.name == 'clean' }.all { subCleanTask ->
+//             // Make the root 'clean' task depend on the subproject's 'clean' task
+//             dependsOn(subCleanTask)
+//         }
+//     }
+// }
+buildscript {
+    ext.kotlin_version = '1.9.22'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.3.0'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
