@@ -252,7 +252,10 @@ class _ChatbotPageState extends State<ChatbotPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ChatbotPage()),
+              );
               _createEvent(Event(
                 id: 0,
                 title: title,
@@ -262,6 +265,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                 endTime: endTime,
                 location: location,
               ).toJson());
+              print(Event);
             },
             child: const Text('Save'),
           ),
@@ -269,6 +273,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
       ),
     );
   }
+  // Navigate to Chatbot Page
 
 // Add this method for initial confirmation
   // void _showEventConfirmationDialog(Map<String, dynamic> eventDetails) {
@@ -447,13 +452,6 @@ class _ChatbotPageState extends State<ChatbotPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              // onPressed: () {
-              //         Navigator.pushReplacement(
-              //           context,
-              //           MaterialPageRoute(
-              //               builder: (context) => const ChatbotPage()),
-              //         ); // Navigate to Chatbot Page
-              //       },
               Navigator.push(context,
                   MaterialPageRoute(builder: (context) => const ChatbotPage()));
 
@@ -504,32 +502,53 @@ class _ChatbotPageState extends State<ChatbotPage> {
     );
   }
 
-  void _createEvent(Map<String, dynamic> eventDetails) async {
+  // void _createEvent(Map<String, dynamic> eventDetails) async {
+  //   try {
+  //     final event = Event(
+  //       id: 0, // Will be set by backend
+  //       title: eventDetails['type'],
+  //       description: eventDetails['description'] ?? '',
+  //       eventType: eventDetails['type'].toUpperCase(),
+  //       startTime: DateTime.parse(eventDetails['time']),
+  //       endTime:
+  //           DateTime.parse(eventDetails['time']).add(const Duration(hours: 1)),
+  //       location: eventDetails['location'],
+  //     );
+
+  //     await EventService.createEvent(event.toJson());
+
+  //     if (mounted) {
+  //       Navigator.pop(context); // Close dialog
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(content: Text('Event created successfully')),
+  //       );
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       Navigator.pop(context);
+  //       _showError('Failed to create event: $e');
+  //     }
+  //   }
+  // }
+  Future<void> _createEvent(Map<String, dynamic> eventDetails) async {
     try {
       final event = Event(
-        id: 0, // Will be set by backend
-        title: eventDetails['type'],
+        title: eventDetails['type'] ?? 'Unknown Event',
         description: eventDetails['description'] ?? '',
-        eventType: eventDetails['type'].toUpperCase(),
+        eventType: eventDetails['type']?.toUpperCase() ?? 'OTHER',
         startTime: DateTime.parse(eventDetails['time']),
         endTime:
             DateTime.parse(eventDetails['time']).add(const Duration(hours: 1)),
-        location: eventDetails['location'],
+        location: eventDetails['location'] ?? 'Not Specified',
       );
 
-      await EventService.createEvent(event.toJson());
+      final createdEvent = await EventService.createEvent(event.toJson());
 
-      if (mounted) {
-        Navigator.pop(context); // Close dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Event created successfully')),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Event Created: ${createdEvent.title}')),
+      );
     } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        _showError('Failed to create event: $e');
-      }
+      _showError('Failed to create event: $e');
     }
   }
 

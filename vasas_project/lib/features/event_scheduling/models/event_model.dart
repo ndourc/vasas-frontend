@@ -1,5 +1,5 @@
 class Event {
-  final int id;
+  final int? id;
   final String title;
   final String description;
   final String eventType;
@@ -8,7 +8,7 @@ class Event {
   final String location;
 
   Event({
-    required this.id,
+    this.id,
     required this.title,
     required this.description,
     required this.eventType,
@@ -19,7 +19,7 @@ class Event {
 
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
-      id: json['id'],
+      id: json['id'] ?? 0,
       title: json['title'],
       description: json['description'],
       eventType: json['event_type'],

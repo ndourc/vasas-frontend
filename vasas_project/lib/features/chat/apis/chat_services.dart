@@ -20,8 +20,12 @@ class ChatbotService {
 
       if (response.statusCode == 200) {
         // Parse response body to Map
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        return responseData;
+        try {
+          final Map<String, dynamic> responseData = jsonDecode(response.body);
+          return responseData;
+        } catch (e) {
+          throw Exception('Invalid JSON response: ${response.body}');
+        }
       } else {
         throw Exception('Server error: ${response.statusCode}');
       }

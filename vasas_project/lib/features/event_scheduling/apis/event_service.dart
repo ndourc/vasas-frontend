@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:vasas_project/features/auth/apis/auth_service.dart';
+import 'package:vasas_project/features/event_scheduling/models/event_model.dart';
 
 class EventService {
   static const String baseUrl = 'http://10.0.2.2:8000/api/events';
@@ -27,8 +28,7 @@ class EventService {
   }
 
   // Create event after confirmation
-  static Future<Map<String, dynamic>> createEvent(
-      Map<String, dynamic> eventData) async {
+  static Future<Event> createEvent(Map<String, dynamic> eventData) async {
     final accessToken = await AuthService.getAccessToken();
     final url = Uri.parse('$baseUrl/create/');
 
