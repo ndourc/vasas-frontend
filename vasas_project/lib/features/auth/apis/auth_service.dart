@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:vasas_project/core/constants/urls.dart';
 
 class AuthService {
-  static const String baseUrl = 'http://10.0.2.2:8000';
-
   // Registration function
   static Future<void> registerUser(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/users/');

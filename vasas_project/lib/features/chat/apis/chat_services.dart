@@ -1,30 +1,33 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:vasas_project/core/constants/urls.dart';
 import 'package:vasas_project/features/auth/apis/auth_service.dart';
 
 class ChatbotService {
-  static const String baseUrl = 'http://10.0.2.2:8000';
+  static Future<Map<String, dynamic>> sendMessageToBot(String message) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/chat/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${await AuthService.getAccessToken()}',
+        },
+        body: jsonEncode({
+          'user_message': message,
+        }),
+      );
 
-  // Send message to chatbot
-  static Future<String> sendMessageToBot(String message) async {
-    final accessToken = await AuthService.getAccessToken();
-    final url = Uri.parse('$baseUrl/api/chat/');
-    final response = await http.post(
-      url,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
-      },
-      body: jsonEncode({'user_message': message}),
-    );
-
-    if (response.statusCode == 200) {
-      final responseData = json.decode(response.body);
-      return responseData['bot_response'];
-    } else {
-      print('Failed to get response from bot: ${response.body}');
-      return 'Error: Unable to get response from bot. Contact administrator or developers.';
+      if (response.statusCode == 200) {
+        // Parse response body to Map
+        final Map<String, dynamic> responseData = jsonDecode(response.body);
+        return responseData;
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('ChatbotService error: $e'); // Debug log
+      throw Exception('Failed to communicate with bot: $e');
     }
   }
 
