@@ -4,12 +4,11 @@ import 'package:vasas_project/features/auth/apis/auth_service.dart';
 import 'package:vasas_project/features/event_scheduling/models/event_model.dart';
 
 class EventService {
-  static const String baseUrl = 'http://10.0.2.2:8000/api/events';
+  static const String eventBaseUrl = 'http://10.0.2.2:8000/api/events';
 
-  // Detect event in message
   static Future<Map<String, dynamic>> detectEvent(String text) async {
     final accessToken = await AuthService.getAccessToken();
-    final url = Uri.parse('$baseUrl/detect/');
+    final url = Uri.parse('$eventBaseUrl/detect/');
 
     final response = await http.post(
       url,
@@ -27,10 +26,9 @@ class EventService {
     }
   }
 
-  // Create event after confirmation
   static Future<Event> createEvent(Map<String, dynamic> eventData) async {
     final accessToken = await AuthService.getAccessToken();
-    final url = Uri.parse('$baseUrl/create/');
+    final url = Uri.parse('$eventBaseUrl/events/create/');
 
     final response = await http.post(
       url,
@@ -42,9 +40,30 @@ class EventService {
     );
 
     if (response.statusCode == 201) {
-      return jsonDecode(response.body);
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      return Event.fromJson(responseData);
     } else {
       throw Exception('Failed to create event: ${response.body}');
+    }
+  }
+
+  static Future<List<Event>> fetchEvents() async {
+    final accessToken = await AuthService.getAccessToken();
+    final url = Uri.parse('$eventBaseUrl/get-events/');
+
+    final response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> eventList = jsonDecode(response.body);
+      return eventList.map((event) => Event.fromJson(event)).toList();
+    } else {
+      throw Exception('Failed to fetch events: ${response.body}');
     }
   }
 }

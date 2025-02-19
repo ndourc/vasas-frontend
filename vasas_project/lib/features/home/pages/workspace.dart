@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:vasas_project/features/app/pages/settings.dart';
+import 'package:vasas_project/features/chat/pages/chat_screen.dart';
+import 'package:vasas_project/features/event_scheduling/apis/event_service.dart';
+import 'package:vasas_project/features/event_scheduling/models/event_model.dart';
 import 'package:vasas_project/features/home/apis/sentiment_analysis_services.dart';
+import 'package:vasas_project/features/notifications/pages/notifications.dart';
 
 class WorkSpacePage extends StatefulWidget {
   const WorkSpacePage({super.key});
@@ -13,10 +18,36 @@ class _WorkSpacePageState extends State<WorkSpacePage> {
   String level = "";
   String state = "";
 
+  List<Event> _events = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
+
+  int _selectedIndex = 0;
+
   @override
   void initState() {
     super.initState();
     fetchSentiment();
+    fetchEvents();
+  }
+
+  void _onItemTapped(int index) {
+    if (index == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ChatbotPage()),
+      );
+    } else if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const NotificationsPage()),
+      );
+    } else if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const SettingsPage()),
+      );
+    }
   }
 
   Future<void> fetchSentiment() async {
@@ -34,6 +65,48 @@ class _WorkSpacePageState extends State<WorkSpacePage> {
     }
   }
 
+  Future<void> fetchEvents() async {
+    try {
+      List<Event> events = await EventService.fetchEvents();
+      setState(() {
+        _events = events;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error fetching events: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showEventDetails(Event event) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text(event.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Type: ${event.eventType}"),
+            Text("Location: ${event.location}"),
+            Text("Start Time: ${event.startTime}"),
+            Text("End Time: ${event.endTime}"),
+            Text("Description: ${event.description}"),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -44,7 +117,7 @@ class _WorkSpacePageState extends State<WorkSpacePage> {
         title: const Row(
           children: [
             CircleAvatar(
-              backgroundImage: AssetImage('assets/profile.jpg'),
+              backgroundImage: AssetImage('assets/person_animation.png'),
             ),
             SizedBox(width: 10),
             Text(
@@ -104,13 +177,25 @@ class _WorkSpacePageState extends State<WorkSpacePage> {
             ),
             const SizedBox(height: 10),
             Expanded(
-              child: ListView(
-                children: [
-                  eventCard("SCS 4108", "Exam", "16/12/2024", "NUST Hall"),
-                  eventCard("Lunch with Vuyi", "", "18/12/2024 13:30", "Spur"),
-                  eventCard("SCS 4101", "Exam", "19/12/2024", "NUST Hall"),
-                ],
-              ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _errorMessage.isNotEmpty
+                      ? Center(child: Text(_errorMessage))
+                      : ListView.builder(
+                          itemCount: _events.length,
+                          itemBuilder: (context, index) {
+                            final event = _events[index];
+                            return GestureDetector(
+                              onTap: () => _showEventDetails(event),
+                              child: eventCard(
+                                event.title,
+                                event.description,
+                                event.startTime.toString(),
+                                event.location,
+                              ),
+                            );
+                          },
+                        ),
             ),
           ],
         ),
@@ -120,16 +205,17 @@ class _WorkSpacePageState extends State<WorkSpacePage> {
         backgroundColor: Colors.white,
         selectedItemColor: Colors.green,
         unselectedItemColor: Colors.grey,
-        showSelectedLabels: false,
+        showSelectedLabels: true,
         showUnselectedLabels: false,
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
         items: const [
           BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: ""),
+              icon: Icon(Icons.chat_bubble_outline), label: "Chat"),
           BottomNavigationBarItem(
-              icon: Icon(Icons.pie_chart_outline), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.notifications), label: ""),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: ""),
+              icon: Icon(Icons.notifications), label: "Notifications"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings), label: "Settings"),
         ],
       ),
     );
@@ -143,7 +229,7 @@ class _WorkSpacePageState extends State<WorkSpacePage> {
         padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
-            const Icon(Icons.location_on, color: Colors.black),
+            const Icon(Icons.event, color: Colors.black),
             const SizedBox(width: 10),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,

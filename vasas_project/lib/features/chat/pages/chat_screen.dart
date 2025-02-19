@@ -533,12 +533,12 @@ class _ChatbotPageState extends State<ChatbotPage> {
   Future<void> _createEvent(Map<String, dynamic> eventDetails) async {
     try {
       final event = Event(
-        title: eventDetails['type'] ?? 'Unknown Event',
+        title: eventDetails['title'] ?? 'Unknown Event',
         description: eventDetails['description'] ?? '',
-        eventType: eventDetails['type']?.toUpperCase() ?? 'OTHER',
-        startTime: DateTime.parse(eventDetails['time']),
-        endTime:
-            DateTime.parse(eventDetails['time']).add(const Duration(hours: 1)),
+        eventType: eventDetails['event_type']?.toUpperCase() ?? 'OTHER',
+        startTime: DateTime.parse(eventDetails['start_time']),
+        endTime: DateTime.parse(eventDetails['end_time'])
+            .add(const Duration(hours: 1)),
         location: eventDetails['location'] ?? 'Not Specified',
       );
 
