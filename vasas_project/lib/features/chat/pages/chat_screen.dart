@@ -187,7 +187,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
 
       // If event detected, show form directly
       if (hasEvent && eventDetails != null) {
-        _showQuickEventForm(eventDetails);
+        _showEventDetailsDialog(eventDetails);
       }
 
       // Add bot confirmation message
@@ -195,7 +195,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
         author: _bot,
         createdAt: DateTime.now().millisecondsSinceEpoch,
         id: UniqueKey().toString(),
-        text: "Schedule event on the pop up",
+        text: _postprocessResponse(response['bot_response'] ?? ''),
       );
 
       setState(() {
