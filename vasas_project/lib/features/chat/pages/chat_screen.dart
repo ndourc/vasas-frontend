@@ -195,7 +195,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
         author: _bot,
         createdAt: DateTime.now().millisecondsSinceEpoch,
         id: UniqueKey().toString(),
-        text: _postprocessResponse(response['bot_response'] ?? ''),
+        text: response['bot_response'],
       );
 
       setState(() {
