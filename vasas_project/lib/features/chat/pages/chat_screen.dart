@@ -102,68 +102,6 @@ class _ChatbotPageState extends State<ChatbotPage> {
     }
   }
 
-  // void _handleSendPressed(types.PartialText message) async {
-  //   final processedText = _preprocessInput(message.text);
-
-  //   final userMessage = types.TextMessage(
-  //     author: _user,
-  //     createdAt: DateTime.now().millisecondsSinceEpoch,
-  //     id: UniqueKey().toString(),
-  //     text: processedText,
-  //   );
-
-  //   setState(() {
-  //     _messages.insert(0, userMessage);
-  //     // _scrollController.animateTo(
-  //     //   0,
-  //     //   duration: const Duration(milliseconds: 300),
-  //     //   curve: Curves.easeOut,
-  //     // );
-  //   });
-
-  //   try {
-  //     // Send message to bot and get response
-  //     final Map<String, dynamic> response =
-  //         await ChatbotService.sendMessageToBot(processedText);
-
-  //     // Extract bot response and event details
-  //     final String botResponseText = response['bot_response'] as String;
-  //     final bool hasEvent = response['has_event'] ?? false;
-  //     final Map<String, dynamic>? eventDetails = response['event_details'];
-
-  //     // Add bot message to chat
-  //     final botMessage = types.TextMessage(
-  //       author: _bot,
-  //       createdAt: DateTime.now().millisecondsSinceEpoch,
-  //       id: UniqueKey().toString(),
-  //       text: _postprocessResponse(botResponseText),
-  //     );
-
-  //     setState(() {
-  //       _messages.insert(0, botMessage);
-  //     });
-
-  //     // Save chat message
-  //     final chatMessage = ChatMessage(
-  //       userMessage: processedText,
-  //       botResponse: botResponseText,
-  //       timestamp: DateTime.now(),
-  //     );
-  //     await _sendChatMessageToBackend(chatMessage);
-
-  //     // Show event dialog if event detected
-  //     if (hasEvent && eventDetails != null) {
-  //       Future.delayed(const Duration(milliseconds: 500), () {
-  //         if (mounted) {
-  //           _showEventConfirmationDialog(eventDetails);
-  //         }
-  //       });
-  //     }
-  //   } catch (e) {
-  //     print('Error in _handleSendPressed: $e'); // Debug log
-  //     _showError('Failed to get response from bot: ${e.toString()}');
-  //   }
-  // }
   void _handleSendPressed(types.PartialText message) async {
     final processedText = _preprocessInput(message.text);
 
@@ -181,69 +119,82 @@ class _ChatbotPageState extends State<ChatbotPage> {
     try {
       final Map<String, dynamic> chatResponse =
           await ChatbotService.sendMessageToBot(processedText);
-      //final eventResponse = await EventService.detectEvent(processedText);
-      //final bool hasEvent = response['has_event'] ?? false;
-      //final Map<String, dynamic>? eventDetails = chatResponse['event_details'];
-      final eventResponse = await EventService.detectEvent(processedText);
-      if (eventResponse['event_details'] != null) {
-        //_showQuickEventForm(eventResponse['event_details']);
-        _showEventDetailsDialog(eventResponse['event_details']);
-      }
-      // If event detected, show form directly
-      // if (hasEvent && eventDetails != null) {
-      //   _showEventDetailsDialog(eventDetails);
-      // }
 
-      // Add bot confirmation message
+      final Map<String, dynamic> eventResponse =
+          await EventService.detectEvent(processedText);
+      final bool hasEvent = eventResponse['has_event'] ?? false;
+      final eventDetails = eventResponse['event_details'];
+
       final botMessage = types.TextMessage(
         author: _bot,
         createdAt: DateTime.now().millisecondsSinceEpoch,
         id: UniqueKey().toString(),
-        text: chatResponse['bot_response'],
+        text: chatResponse['bot_response'] ?? "I couldn't understand that.",
       );
 
       setState(() {
         _messages.insert(0, botMessage);
       });
+
+      // 👀 Then, show Event Dialog without blocking the UI
+      if (mounted && hasEvent && eventDetails != null) {
+        Future.delayed(Duration.zero, () {
+          _showEventDetailsDialog(eventDetails);
+        });
+      }
     } catch (e) {
       print('Error: $e');
       _showError('Failed to process message');
     }
   }
 
-// New streamlined event form
-  void _showQuickEventForm(Map<String, dynamic> eventDetails) {
-    final title = eventDetails['type'] ?? '';
-    final location = eventDetails['location'] ?? '';
-    final startTime =
-        DateTime.tryParse(eventDetails['time'] ?? '') ?? DateTime.now();
-    final endTime = startTime.add(const Duration(hours: 1));
-    final eventType = eventDetails['type']?.toUpperCase() ?? 'OTHER';
+  void _detectEvent(String text) async {
+    try {
+      final Map<String, dynamic> eventResponse =
+          await EventService.detectEvent(text);
+      if (eventResponse['event_details'] != null) {
+        _showEventDialog(eventResponse['event_details']);
+      }
+    } catch (e) {
+      print('Event detection failed silently.');
+    }
+  }
+
+  void _showEventDialog(Map<String, dynamic> eventDetails) {
+    String title = eventDetails['type'] ?? '';
+    String location = eventDetails['location'] ?? '';
     String description = eventDetails['description'] ?? '';
+    DateTime startTime =
+        DateTime.tryParse(eventDetails['time'] ?? '') ?? DateTime.now();
+    DateTime endTime = startTime.add(const Duration(hours: 1));
+    String eventType = eventDetails['type']?.toUpperCase() ?? 'OTHER';
 
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (context) => AlertDialog(
-        title: const Text('Quick Event Setup'),
+        title: const Text('Schedule Event'),
         content: SingleChildScrollView(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                title: Text('Type: $eventType'),
-                subtitle: Text('Location: $location'),
-              ),
-              ListTile(
-                title: Text('Start: ${startTime.toString()}'),
-                subtitle: Text('End: ${endTime.toString()}'),
-              ),
               TextField(
                 decoration: const InputDecoration(
-                  labelText: 'Add Notes (Optional)',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
+                    labelText: 'Title', border: OutlineInputBorder()),
+                controller: TextEditingController(text: title),
+                onChanged: (value) => title = value,
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                decoration: const InputDecoration(
+                    labelText: 'Location', border: OutlineInputBorder()),
+                controller: TextEditingController(text: location),
+                onChanged: (value) => location = value,
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                decoration: const InputDecoration(
+                    labelText: 'Description', border: OutlineInputBorder()),
+                controller: TextEditingController(text: description),
                 onChanged: (value) => description = value,
               ),
             ],
@@ -255,13 +206,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => const ChatbotPage()),
-              );
-              _createEvent(Event(
-                id: 0,
+            onPressed: () async {
+              Navigator.pop(context);
+              await _createEvent(Event(
                 title: title,
                 description: description,
                 eventType: eventType,
@@ -269,96 +216,97 @@ class _ChatbotPageState extends State<ChatbotPage> {
                 endTime: endTime,
                 location: location,
               ).toJson());
-              print(Event);
             },
-            child: const Text('Save'),
+            child: const Text('Save Event'),
           ),
         ],
       ),
     );
   }
-  // Navigate to Chatbot Page
 
-// Add this method for initial confirmation
-  // void _showEventConfirmationDialog(Map<String, dynamic> eventDetails) {
+// New streamlined event form
+  // void _showQuickEventForm(Map<String, dynamic> eventDetails) {
+  //   final title = eventDetails['type'] ?? '';
+  //   final location = eventDetails['location'] ?? '';
+  //   final startTime =
+  //       DateTime.tryParse(eventDetails['time'] ?? '') ?? DateTime.now();
+  //   final endTime = startTime.add(const Duration(hours: 1));
+  //   final eventType = eventDetails['type']?.toUpperCase() ?? 'OTHER';
+  //   String description = eventDetails['description'] ?? '';
+
   //   showDialog(
   //     context: context,
   //     barrierDismissible: false,
-  //     builder: (BuildContext context) => AlertDialog(
-  //       title: const Text('Event Detected'),
-  //       content: Text('Would you like to schedule a ${eventDetails['type']} '
-  //           'at ${eventDetails['time']} in ${eventDetails['location']}?'),
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('Quick Event Setup'),
+  //       content: SingleChildScrollView(
+  //         child: Column(
+  //           mainAxisSize: MainAxisSize.min,
+  //           children: [
+  //             ListTile(
+  //               title: Text('Type: $eventType'),
+  //               subtitle: Text('Location: $location'),
+  //             ),
+  //             ListTile(
+  //               title: Text('Start: ${startTime.toString()}'),
+  //               subtitle: Text('End: ${endTime.toString()}'),
+  //             ),
+  //             TextField(
+  //               decoration: const InputDecoration(
+  //                 labelText: 'Add Notes (Optional)',
+  //                 border: OutlineInputBorder(),
+  //               ),
+  //               maxLines: 2,
+  //               onChanged: (value) => description = value,
+  //             ),
+  //           ],
+  //         ),
+  //       ),
   //       actions: [
   //         TextButton(
   //           onPressed: () => Navigator.pop(context),
-  //           child: const Text('No'),
+  //           child: const Text('Cancel'),
   //         ),
   //         ElevatedButton(
   //           onPressed: () {
-  //             Navigator.pop(context);
-  //             _showEventDetailsDialog(eventDetails);
+  //             Navigator.pushReplacement(
+  //               context,
+  //               MaterialPageRoute(builder: (context) => const ChatbotPage()),
+  //             );
+  //             _createEvent(Event(
+  //               id: 0,
+  //               title: title,
+  //               description: description,
+  //               eventType: eventType,
+  //               startTime: startTime,
+  //               endTime: endTime,
+  //               location: location,
+  //             ).toJson());
+  //             print(Event);
   //           },
-  //           child: const Text('Yes'),
+  //           child: const Text('Save'),
   //         ),
   //       ],
   //     ),
   //   );
   // }
-  // void _handleSendPressed(types.PartialText message) async {
-  //   final processedText = _preprocessInput(message.text);
-
-  //   final userMessage = types.TextMessage(
-  //     author: _user,
-  //     createdAt: DateTime.now().millisecondsSinceEpoch,
-  //     id: UniqueKey().toString(),
-  //     text: processedText,
-  //   );
-
-  //   setState(() {
-  //     _messages.insert(0, userMessage);
-  //   });
-
-  //   try {
-  //     final response = await ChatbotService.sendMessageToBot(processedText);
-
-  //     // Check for event intent
-  //     if (response['has_event'] == true) {
-  //       _showEventDialog(response['event_details']);
-  //     }
-
-  //     final botMessage = types.TextMessage(
-  //       author: _bot,
-  //       createdAt: DateTime.now().millisecondsSinceEpoch,
-  //       id: UniqueKey().toString(),
-  //       text: response['bot_response'],
-  //     );
-
-  //     setState(() {
-  //       _messages.insert(0, botMessage);
-  //     });
-  //   } catch (e) {
-  //     _showError('Failed to get response from bot');
-  //   }
-  // }
 
   void _showEventDetailsDialog(Map<String, dynamic> eventDetails) {
     String title = eventDetails['type'] ?? '';
-    String description = '';
     String location = eventDetails['location'] ?? '';
+    String description = eventDetails['description'] ?? '';
     DateTime startTime =
-        DateTime.tryParse(eventDetails['time'] ?? '') ?? DateTime.now();
+        DateTime.tryParse(eventDetails['date'] ?? '') ?? DateTime.now();
     DateTime endTime = startTime.add(const Duration(hours: 1));
     String eventType = eventDetails['type']?.toUpperCase() ?? 'OTHER';
 
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) => AlertDialog(
+      barrierDismissible: true, // <- user can dismiss if they want
+      builder: (context) => AlertDialog(
         title: const Text('Schedule Event'),
         content: SingleChildScrollView(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               TextField(
                 decoration: const InputDecoration(
@@ -368,24 +316,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                 controller: TextEditingController(text: title),
                 onChanged: (value) => title = value,
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'Event Type',
-                  border: OutlineInputBorder(),
-                ),
-                value: eventType,
-                items: const [
-                  DropdownMenuItem(
-                      value: 'APPOINTMENT', child: Text('Appointment')),
-                  DropdownMenuItem(value: 'EXAM', child: Text('Exam')),
-                  DropdownMenuItem(value: 'MEETING', child: Text('Meeting')),
-                  DropdownMenuItem(value: 'DATE', child: Text('Date')),
-                  DropdownMenuItem(value: 'OTHER', child: Text('Other')),
-                ],
-                onChanged: (value) => eventType = value ?? 'OTHER',
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               TextField(
                 decoration: const InputDecoration(
                   labelText: 'Location',
@@ -394,56 +325,13 @@ class _ChatbotPageState extends State<ChatbotPage> {
                 controller: TextEditingController(text: location),
                 onChanged: (value) => location = value,
               ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: () async {
-                  final DateTime? picked = await showDateTimePicker(
-                    context: context,
-                    initialDate: startTime,
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (picked != null) {
-                    startTime = picked;
-                    endTime = picked.add(const Duration(hours: 1));
-                  }
-                },
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'Start Time',
-                    border: OutlineInputBorder(),
-                  ),
-                  child: Text(startTime.toString()),
-                ),
-              ),
-              const SizedBox(height: 16),
-              InkWell(
-                onTap: () async {
-                  final DateTime? picked = await showDateTimePicker(
-                    context: context,
-                    initialDate: endTime,
-                    firstDate: startTime,
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (picked != null) {
-                    endTime = picked;
-                  }
-                },
-                child: InputDecorator(
-                  decoration: const InputDecoration(
-                    labelText: 'End Time',
-                    border: OutlineInputBorder(),
-                  ),
-                  child: Text(endTime.toString()),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               TextField(
                 decoration: const InputDecoration(
                   labelText: 'Description',
                   border: OutlineInputBorder(),
                 ),
-                maxLines: 3,
+                controller: TextEditingController(text: description),
                 onChanged: (value) => description = value,
               ),
             ],
@@ -455,22 +343,18 @@ class _ChatbotPageState extends State<ChatbotPage> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => const ChatbotPage()));
-
-              final event = Event(
-                id: 0,
+            onPressed: () async {
+              Navigator.pop(context);
+              await _createEvent(Event(
                 title: title,
                 description: description,
                 eventType: eventType,
                 startTime: startTime,
                 endTime: endTime,
                 location: location,
-              );
-              _createEvent(event.toJson());
+              ).toJson());
             },
-            child: const Text('Save'),
+            child: const Text('Save Event'),
           ),
         ],
       ),
@@ -506,34 +390,6 @@ class _ChatbotPageState extends State<ChatbotPage> {
     );
   }
 
-  // void _createEvent(Map<String, dynamic> eventDetails) async {
-  //   try {
-  //     final event = Event(
-  //       id: 0, // Will be set by backend
-  //       title: eventDetails['type'],
-  //       description: eventDetails['description'] ?? '',
-  //       eventType: eventDetails['type'].toUpperCase(),
-  //       startTime: DateTime.parse(eventDetails['time']),
-  //       endTime:
-  //           DateTime.parse(eventDetails['time']).add(const Duration(hours: 1)),
-  //       location: eventDetails['location'],
-  //     );
-
-  //     await EventService.createEvent(event.toJson());
-
-  //     if (mounted) {
-  //       Navigator.pop(context); // Close dialog
-  //       ScaffoldMessenger.of(context).showSnackBar(
-  //         const SnackBar(content: Text('Event created successfully')),
-  //       );
-  //     }
-  //   } catch (e) {
-  //     if (mounted) {
-  //       Navigator.pop(context);
-  //       _showError('Failed to create event: $e');
-  //     }
-  //   }
-  // }
   Future<void> _createEvent(Map<String, dynamic> eventDetails) async {
     try {
       final event = Event(
