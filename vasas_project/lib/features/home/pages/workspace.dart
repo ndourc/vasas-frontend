@@ -190,7 +190,7 @@ class _WorkSpacePageState extends State<WorkSpacePage> {
                               child: eventCard(
                                 event.title,
                                 event.description,
-                                event.startTime.toString(),
+                                //event.startTime.toString(),
                                 event.location,
                               ),
                             );
@@ -222,7 +222,10 @@ class _WorkSpacePageState extends State<WorkSpacePage> {
   }
 
   Widget eventCard(
-      String title, String subtitle, String date, String location) {
+      String title,
+      String subtitle,
+      //String date,
+      String location) {
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
@@ -250,11 +253,11 @@ class _WorkSpacePageState extends State<WorkSpacePage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  date,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold),
-                ),
+                // Text(
+                //   date,
+                //   style: const TextStyle(
+                //       fontSize: 14, fontWeight: FontWeight.bold),
+                // ),
                 Text(
                   location,
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),

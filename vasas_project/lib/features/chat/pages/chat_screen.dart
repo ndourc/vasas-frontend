@@ -164,7 +164,6 @@ class _ChatbotPageState extends State<ChatbotPage> {
   //     _showError('Failed to get response from bot: ${e.toString()}');
   //   }
   // }
-  // Update _handleSendPressed to directly show event form
   void _handleSendPressed(types.PartialText message) async {
     final processedText = _preprocessInput(message.text);
 
@@ -180,22 +179,27 @@ class _ChatbotPageState extends State<ChatbotPage> {
     });
 
     try {
-      final Map<String, dynamic> response =
+      final Map<String, dynamic> chatResponse =
           await ChatbotService.sendMessageToBot(processedText);
-      final bool hasEvent = response['has_event'] ?? false;
-      final Map<String, dynamic>? eventDetails = response['event_details'];
-
-      // If event detected, show form directly
-      if (hasEvent && eventDetails != null) {
-        _showEventDetailsDialog(eventDetails);
+      //final eventResponse = await EventService.detectEvent(processedText);
+      //final bool hasEvent = response['has_event'] ?? false;
+      //final Map<String, dynamic>? eventDetails = chatResponse['event_details'];
+      final eventResponse = await EventService.detectEvent(processedText);
+      if (eventResponse['event_details'] != null) {
+        //_showQuickEventForm(eventResponse['event_details']);
+        _showEventDetailsDialog(eventResponse['event_details']);
       }
+      // If event detected, show form directly
+      // if (hasEvent && eventDetails != null) {
+      //   _showEventDetailsDialog(eventDetails);
+      // }
 
       // Add bot confirmation message
       final botMessage = types.TextMessage(
         author: _bot,
         createdAt: DateTime.now().millisecondsSinceEpoch,
         id: UniqueKey().toString(),
-        text: response['bot_response'],
+        text: chatResponse['bot_response'],
       );
 
       setState(() {

@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:vasas_project/core/constants/urls.dart';
 import 'package:vasas_project/features/auth/apis/auth_service.dart';
 import 'package:vasas_project/features/event_scheduling/models/event_model.dart';
 
 class EventService {
-  static const String eventBaseUrl = 'http://10.0.2.2:8000/api/events';
+  static String eventBaseUrl = '$baseUrl/api/events';
 
   static Future<Map<String, dynamic>> detectEvent(String text) async {
     final accessToken = await AuthService.getAccessToken();
@@ -28,7 +29,7 @@ class EventService {
 
   static Future<Event> createEvent(Map<String, dynamic> eventData) async {
     final accessToken = await AuthService.getAccessToken();
-    final url = Uri.parse('$eventBaseUrl/events/create/');
+    final url = Uri.parse('$eventBaseUrl/create/');
 
     final response = await http.post(
       url,
@@ -59,8 +60,12 @@ class EventService {
       },
     );
 
+    print("Response status: ${response.statusCode}");
+    print("Response body: ${response.body}");
+
     if (response.statusCode == 200) {
       final List<dynamic> eventList = jsonDecode(response.body);
+      print("Parsed event list: $eventList"); // Debugging
       return eventList.map((event) => Event.fromJson(event)).toList();
     } else {
       throw Exception('Failed to fetch events: ${response.body}');

@@ -19,7 +19,6 @@ class ChatbotService {
       );
 
       if (response.statusCode == 200) {
-        // Parse response body to Map
         try {
           final Map<String, dynamic> responseData = jsonDecode(response.body);
           return responseData;
@@ -30,7 +29,7 @@ class ChatbotService {
         throw Exception('Server error: ${response.statusCode}');
       }
     } catch (e) {
-      print('ChatbotService error: $e'); // Debug log
+      print('ChatbotService error: $e');
       throw Exception('Failed to communicate with bot: $e');
     }
   }
