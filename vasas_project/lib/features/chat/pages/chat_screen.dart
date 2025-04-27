@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 // ignore: depend_on_referenced_packages
@@ -20,6 +22,7 @@ class ChatbotPage extends StatefulWidget {
 }
 
 class _ChatbotPageState extends State<ChatbotPage> {
+  final TextEditingController _textController = TextEditingController();
   final AutoScrollController _scrollController = AutoScrollController();
 
   final List<types.Message> _messages = [];
@@ -48,6 +51,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
 
   void _onSpeechStatus(String status) {
     debugPrint('Speech status: $status');
+    if (!mounted) return;
     if (status == 'done' || status == 'notListening') {
       setState(() {
         _isListening = false;
@@ -56,54 +60,106 @@ class _ChatbotPageState extends State<ChatbotPage> {
   }
 
   void _onSpeechError(SpeechRecognitionError error) {
-    debugPrint('Speech error: $error');
+    debugPrint('Speech error: ${error.errorMsg}');
+    if (!mounted) return;
+    if (error.errorMsg == 'error_speech_timeout') {
+      _speech.stop();
+      setState(() {
+        _isListening = false;
+        // If we have recognized text, send it to input
+        if (_recognizedText.isNotEmpty) {
+          _sendRecognizedTextToInput();
+        }
+      });
+      return;
+    }
+
     if (error.permanent) {
       setState(() {
         _isListening = false;
       });
+
+      // Show error message only if widget is still mounted
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Speech recognition error: ${error.errorMsg}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   void _startListening() async {
     if (!_isListening) {
-      bool available = await _speech.initialize();
-      if (available) {
-        setState(() => _isListening = true);
-        _speech.listen(
-          onResult: (result) => setState(() {
-            _recognizedText = result.recognizedWords;
-            if (result.finalResult) {
-              _sendRecognizedTextToBot();
-            }
-          }),
-          listenFor:
-              const Duration(minutes: 5), // Adjust the listening duration
-          pauseFor: const Duration(seconds: 10), // Adjust the pause duration
+      setState(() {
+        _isListening = true;
+        _recognizedText = '';
+      });
+      try {
+        await _speech.listen(
+          onResult: (result) {
+            if (!mounted) return;
+            setState(() {
+              // _textController.text =
+              //     result.recognizedWords;
+              _recognizedText = result.recognizedWords;
+              if (result.finalResult && result.recognizedWords.isNotEmpty) {
+                _textController.text = result.recognizedWords;
+              }
+            });
+          },
+          listenFor: const Duration(seconds: 10),
+          pauseFor: const Duration(seconds: 5),
+          partialResults: true,
+          onDevice: true,
+          listenMode: stt.ListenMode.confirmation,
         );
-        print("Listening for 5 minutes");
+        debugPrint("Listening...");
+      } catch (e) {
+        debugPrint("Error starting speech recognition: $e");
+        setState(() => _isListening = false);
+        _showError("Failed to start listening");
       }
     }
   }
 
   Future<void> _stopListening() async {
     if (_isListening) {
-      await _speech.stop();
-      setState(() => _isListening = false);
-      if (_recognizedText.isNotEmpty) {
-        _sendRecognizedTextToBot();
+      try {
+        await _speech.stop();
+        if (mounted) {
+          setState(() {
+            _isListening = false;
+            // Only send recognized text if we have some
+            if (_recognizedText.isNotEmpty) {
+              _sendRecognizedTextToInput();
+            }
+          });
+        }
+      } catch (e) {
+        debugPrint("Error stopping speech recognition: $e");
+        if (mounted) {
+          _showError("Failed to stop listening");
+        }
       }
     }
   }
 
-  void _sendRecognizedTextToBot() {
+  void _sendRecognizedTextToInput() {
     if (_recognizedText.trim().isNotEmpty) {
-      _handleSendPressed(types.PartialText(text: _recognizedText));
-      setState(() => _recognizedText = '');
+      _textController.text = _recognizedText.trim();
+      _recognizedText = '';
     }
   }
 
   void _handleSendPressed(types.PartialText message) async {
-    final processedText = _preprocessInput(message.text);
+    final inputText =
+        _recognizedText.isNotEmpty ? _recognizedText : message.text;
+    final processedText = _preprocessInput(inputText);
+
+    _textController.clear();
 
     final userMessage = types.TextMessage(
       author: _user,
@@ -135,8 +191,6 @@ class _ChatbotPageState extends State<ChatbotPage> {
       setState(() {
         _messages.insert(0, botMessage);
       });
-
-      // 👀 Then, show Event Dialog without blocking the UI
       if (mounted && hasEvent && eventDetails != null) {
         Future.delayed(Duration.zero, () {
           _showEventDetailsDialog(eventDetails);
@@ -423,7 +477,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
   @override
   void dispose() {
     _speech.stop();
+    _speech.cancel();
     _scrollController.dispose();
+    _textController.dispose();
     super.dispose();
   }
 
