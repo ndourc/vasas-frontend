@@ -37,7 +37,7 @@ class ChatbotService {
   // Send audio to chatbot for speech recognition
   static Future<String> sendAudioToBot(File audioFile) async {
     final accessToken = await AuthService.getAccessToken();
-    final url = Uri.parse('$baseUrl/speech-recognition/');
+    final url = Uri.parse('$baseUrl/api/speech-recognition/');
     final request = http.MultipartRequest('POST', url)
       ..headers['Authorization'] = 'Bearer $accessToken'
       ..files.add(await http.MultipartFile.fromPath('audio', audioFile.path));

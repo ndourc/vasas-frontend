@@ -13,6 +13,7 @@ import 'package:vasas_project/features/chat/models/chat_message_model.dart';
 import 'package:vasas_project/features/home/pages/workspace.dart';
 import 'package:vasas_project/features/event_scheduling/apis/event_service.dart';
 import 'package:vasas_project/features/event_scheduling/models/event_model.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class ChatbotPage extends StatefulWidget {
   const ChatbotPage({super.key});
@@ -39,88 +40,183 @@ class _ChatbotPageState extends State<ChatbotPage> {
   }
 
   void _initializeSpeech() async {
-    bool available = await _speech.initialize(
-      onStatus: (status) => _onSpeechStatus(status),
-      onError: (error) => _onSpeechError(error),
-    );
-    if (!mounted) return;
-    setState(() {
-      _isListening = available;
-    });
+    try {
+      // Check microphone permission first
+      var status = await Permission.microphone.status;
+      if (status.isDenied) {
+        status = await Permission.microphone.request();
+        if (status.isDenied) {
+          _showError('Microphone permission is required');
+          return;
+        }
+      }
+
+      // Initialize speech recognition
+      bool available = await _speech.initialize(
+        onStatus: _onSpeechStatus,
+        onError: _onSpeechError,
+        debugLogging: true,
+        finalTimeout: const Duration(milliseconds: 2000),
+      );
+
+      debugPrint('Speech recognition available: $available');
+      if (!available) {
+        _showError('Speech recognition not available on this device');
+      }
+    } catch (e) {
+      debugPrint('Speech initialization error: $e');
+      _showError('Failed to initialize speech recognition');
+    }
   }
 
   void _onSpeechStatus(String status) {
     debugPrint('Speech status: $status');
     if (!mounted) return;
+
     if (status == 'done' || status == 'notListening') {
       setState(() {
         _isListening = false;
+        // Ensure final text is in TextField
+        if (_recognizedText.isNotEmpty) {
+          _textController.value = TextEditingValue(
+            text: _recognizedText,
+            selection: TextSelection.collapsed(offset: _recognizedText.length),
+          );
+        }
       });
     }
   }
 
+  // void _onSpeechError(SpeechRecognitionError error) {
+  //   debugPrint('Speech error: ${error.errorMsg}');
+  //   if (!mounted) return;
+  //   if (error.errorMsg == 'error_speech_timeout') {
+  //     _speech.stop();
+  //     setState(() {
+  //       _isListening = false;
+  //       // If we have recognized text, send it to input
+  //       if (_recognizedText.isNotEmpty) {
+  //         _sendRecognizedTextToInput();
+  //       }
+  //     });
+  //     return;
+  //   }
+
+  //   if (error.permanent) {
+  //     setState(() {
+  //       _isListening = false;
+  //     });
+
+  //     // Show error message only if widget is still mounted
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Speech recognition error: ${error.errorMsg}'),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //     }
+  //   }
+  // }
   void _onSpeechError(SpeechRecognitionError error) {
     debugPrint('Speech error: ${error.errorMsg}');
     if (!mounted) return;
-    if (error.errorMsg == 'error_speech_timeout') {
-      _speech.stop();
-      setState(() {
-        _isListening = false;
-        // If we have recognized text, send it to input
-        if (_recognizedText.isNotEmpty) {
-          _sendRecognizedTextToInput();
-        }
-      });
-      return;
+
+    // Stop listening and reset state
+    _speech.stop();
+    setState(() => _isListening = false);
+
+    // Handle specific error cases
+    String errorMessage;
+    switch (error.errorMsg) {
+      case 'error_no_match':
+        errorMessage = 'No speech was detected. Please try again.';
+        break;
+      case 'error_speech_timeout':
+        errorMessage = 'No speech detected for a while.';
+        break;
+      case 'error_network':
+        errorMessage = 'Network error occurred. Check your connection.';
+        break;
+      default:
+        errorMessage = 'Speech recognition error: ${error.errorMsg}';
     }
 
-    if (error.permanent) {
-      setState(() {
-        _isListening = false;
-      });
-
-      // Show error message only if widget is still mounted
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Speech recognition error: ${error.errorMsg}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 
   void _startListening() async {
     if (!_isListening) {
-      setState(() {
-        _isListening = true;
-        _recognizedText = '';
-      });
       try {
+        // Check if speech recognition is available
+        bool available = await _speech.initialize(
+          onStatus: _onSpeechStatus,
+          onError: _onSpeechError,
+        );
+
+        if (!available) {
+          _showError('Speech recognition not available');
+          return;
+        }
+
+        // Set state before starting
+        setState(() {
+          _isListening = true;
+          _recognizedText = '';
+          // _textController.clear();
+        });
+
         await _speech.listen(
           onResult: (result) {
+            debugPrint('Speech result received: ${result.recognizedWords}');
             if (!mounted) return;
+
+            // setState(() {
+            //   _recognizedText = result.recognizedWords;
+            //   // Update text controller even with partial results
+            //   if (result.recognizedWords.isNotEmpty) {
+            //     _textController.text = result.recognizedWords;
+            //     debugPrint('Updated text controller: ${_textController.text}');
+            //   }
+            // });
             setState(() {
-              // _textController.text =
-              //     result.recognizedWords;
-              _recognizedText = result.recognizedWords;
-              if (result.finalResult && result.recognizedWords.isNotEmpty) {
-                _textController.text = result.recognizedWords;
+              // _recognizedText = result.recognizedWords;
+              // Update text controller and force TextField rebuild
+              if (result.recognizedWords.isNotEmpty) {
+                _textController.value = TextEditingValue(
+                  text: result.recognizedWords,
+                  selection: TextSelection.collapsed(
+                      offset: result.recognizedWords.length),
+                );
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    setState(() {});
+                  }
+                });
               }
             });
           },
-          listenFor: const Duration(seconds: 10),
-          pauseFor: const Duration(seconds: 5),
+          listenFor: const Duration(seconds: 30), // Increased listen time
+          pauseFor: const Duration(seconds: 3), // Reduced pause time
           partialResults: true,
-          onDevice: true,
-          listenMode: stt.ListenMode.confirmation,
+          onDevice: false, // Changed to on-device
+          listenMode: stt.ListenMode.deviceDefault, // Changed listen mode
+          cancelOnError: false, // Don't cancel on error
         );
-        debugPrint("Listening...");
+
+        debugPrint("Speech recognition started");
       } catch (e) {
-        debugPrint("Error starting speech recognition: $e");
+        debugPrint("Speech recognition error: $e");
         setState(() => _isListening = false);
-        _showError("Failed to start listening");
+        _showError("Failed to start speech recognition");
       }
     }
   }
@@ -129,20 +225,26 @@ class _ChatbotPageState extends State<ChatbotPage> {
     if (_isListening) {
       try {
         await _speech.stop();
-        if (mounted) {
-          setState(() {
-            _isListening = false;
-            // Only send recognized text if we have some
-            if (_recognizedText.isNotEmpty) {
-              _sendRecognizedTextToInput();
-            }
-          });
+        setState(() {
+          _isListening = false;
+          // Ensure the recognized text is in the chat input field
+          if (_recognizedText.isNotEmpty) {
+            _textController.value = TextEditingValue(
+              text: _recognizedText,
+              selection:
+                  TextSelection.collapsed(offset: _recognizedText.length),
+            );
+          }
+        });
+
+        // Optional: Trigger message send if needed
+        if (_recognizedText.isNotEmpty) {
+          _handleSendPressed(types.PartialText(text: _recognizedText));
+          _recognizedText = '';
         }
       } catch (e) {
         debugPrint("Error stopping speech recognition: $e");
-        if (mounted) {
-          _showError("Failed to stop listening");
-        }
+        _showError("Failed to stop listening");
       }
     }
   }
@@ -498,6 +600,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                 user: _user,
                 theme: _buildChatTheme(),
                 scrollController: _scrollController,
+                customBottomWidget: _buildInputField(),
               ),
             ),
             _buildListeningUI(),
@@ -601,6 +704,42 @@ class _ChatbotPageState extends State<ChatbotPage> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  Widget _buildInputField() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _textController,
+              decoration: const InputDecoration(
+                hintText: 'Type a message...',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              onSubmitted: (text) {
+                if (text.trim().isNotEmpty) {
+                  _handleSendPressed(types.PartialText(text: text));
+                }
+              },
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.send),
+            onPressed: () {
+              if (_textController.text.trim().isNotEmpty) {
+                _handleSendPressed(
+                    types.PartialText(text: _textController.text));
+                _textController.clear();
+              }
+            },
+          ),
+        ],
       ),
     );
   }
