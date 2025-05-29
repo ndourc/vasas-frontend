@@ -1,1 +1,0 @@
-# Speach_to_text_ollama
